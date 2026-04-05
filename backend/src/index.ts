@@ -5,6 +5,7 @@ import { connectDB } from './config/db';
 import eventRoutes from './routes/events';
 import todoRoutes from './routes/todos';
 import scheduleRoutes from './routes/schedule';
+import chatRoutes from './routes/chat';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api/events', eventRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/schedule', scheduleRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
