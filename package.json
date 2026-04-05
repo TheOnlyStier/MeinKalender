@@ -2,5 +2,5 @@
   "name": "mein-kalender",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["shared", "backend", "frontend"]
+  "workspaces": ["shared", "backend", "frontend", "telegram-bot"]
 }
