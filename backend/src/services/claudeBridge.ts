@@ -98,6 +98,7 @@ export function askClaude(userMessage: string, sessionId: string): Promise<strin
       '--allowedTools', 'bash',
       '--max-turns', '5',
       '--dangerously-skip-permissions',
+      '--model', 'sonnet',
     ];
 
     const claudePath = process.env.CLAUDE_PATH || '/opt/homebrew/bin/claude';
