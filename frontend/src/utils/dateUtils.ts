@@ -42,7 +42,7 @@ export function isToday(date: Date | string): boolean {
   return isSameDay(date, new Date());
 }
 
-export function getTimePosition(date: Date | string, startHour = 6): number {
+export function getTimePosition(date: Date | string, startHour = 0): number {
   const d = new Date(date);
   const hours = d.getHours() + d.getMinutes() / 60;
   return Math.max(0, hours - startHour);
