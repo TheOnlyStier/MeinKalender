@@ -1,6 +1,6 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { CalendarEvent, useEventStore } from '../../stores/useEventStore';
-import { formatTime } from '../../utils/dateUtils';
+import { formatTime, getDurationHours } from '../../utils/dateUtils';
 
 const HOUR_HEIGHT = 64;
 const MIN_HEIGHT = 16; // 15min minimum
@@ -15,6 +15,8 @@ interface Props {
 
 export const EventBlock: React.FC<Props> = ({ event, top, height, onEdit, onResize }) => {
   const { deleteEvent } = useEventStore();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const resizing = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
@@ -64,6 +66,19 @@ export const EventBlock: React.FC<Props> = ({ event, top, height, onEdit, onResi
     document.body.style.userSelect = 'none';
   }, [event, height, onResize]);
 
+  const durationMin = Math.round(getDurationHours(event.start, event.end) * 60);
+  const durLabel = durationMin >= 60
+    ? `${Math.floor(durationMin / 60)}h${durationMin % 60 > 0 ? ` ${durationMin % 60}min` : ''}`
+    : `${durationMin}min`;
+
+  const handleMouseEnter = () => {
+    hoverTimeout.current = setTimeout(() => setShowTooltip(true), 400);
+  };
+  const handleMouseLeave = () => {
+    clearTimeout(hoverTimeout.current);
+    setShowTooltip(false);
+  };
+
   return (
     <div
       ref={blockRef}
@@ -74,7 +89,36 @@ export const EventBlock: React.FC<Props> = ({ event, top, height, onEdit, onResi
         backgroundColor: event.color || '#6366f1',
       }}
       onClick={() => onEdit?.(event)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
+      {/* Hover Tooltip */}
+      {showTooltip && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '6px',
+            backgroundColor: '#1f2937',
+            color: '#ffffff',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            whiteSpace: 'nowrap',
+            zIndex: 50,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>{event.title}</div>
+          <div style={{ opacity: 0.8, marginTop: '2px' }}>
+            {formatTime(event.start)} – {formatTime(event.end)} · {durLabel}
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-1">
         <div className="font-medium truncate">{event.title}</div>
         <button
