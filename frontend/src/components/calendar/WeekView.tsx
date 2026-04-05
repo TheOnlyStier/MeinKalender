@@ -12,17 +12,18 @@ interface Props {
   onTimeClick?: (date: Date, hour: number) => void;
   onTodoComplete?: (id: string) => void;
   onEventEdit?: (event: CalendarEvent) => void;
+  onEventResize?: (eventId: string, newEnd: string) => void;
+  onTemplateDrop?: (date: Date, hour: number, template: { name: string; color: string; defaultMinutes: number }) => void;
 }
 
-export const WeekView: React.FC<Props> = ({ selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit }) => {
+export const WeekView: React.FC<Props> = ({
+  selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit, onEventResize, onTemplateDrop,
+}) => {
   const weekDays = getWeekDays(selectedDate);
 
   return (
     <div className="flex">
-      {/* Time labels – once on the left */}
       <TimeLabels />
-
-      {/* Day columns */}
       <div className="grid grid-cols-7 flex-1">
         {weekDays.map((day) => (
           <div key={day.toISOString()} className="relative min-w-[120px]">
@@ -33,6 +34,8 @@ export const WeekView: React.FC<Props> = ({ selectedDate, events, scheduledTodos
               onTimeClick={onTimeClick}
               onTodoComplete={onTodoComplete}
               onEventEdit={onEventEdit}
+              onEventResize={onEventResize}
+              onTemplateDrop={onTemplateDrop}
             />
           </div>
         ))}

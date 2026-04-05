@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useUIStore } from '../../stores/useUIStore';
+import { EventTemplates } from './EventTemplates';
 
 type Page = 'calendar' | 'todos' | 'plan';
 
@@ -35,6 +36,7 @@ const NAV_ITEMS: { page: Page; label: string; icon: React.ReactNode }[] = [
 
 export const Sidebar: React.FC = () => {
   const { currentPage, setPage } = useUIStore();
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   return (
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col h-screen">
@@ -45,7 +47,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="px-3 py-4 space-y-1">
         {NAV_ITEMS.map(({ page, label, icon }) => (
           <button
             key={page}
@@ -61,6 +63,14 @@ export const Sidebar: React.FC = () => {
           </button>
         ))}
       </nav>
+
+      {/* Divider */}
+      <div className="mx-3 border-t border-gray-100" />
+
+      {/* Event Templates */}
+      <div className="px-3 py-3 flex-1 overflow-y-auto">
+        <EventTemplates isOpen={templatesOpen} onToggle={() => setTemplatesOpen(!templatesOpen)} />
+      </div>
 
       {/* Footer */}
       <div className="px-6 py-4 border-t border-gray-100">

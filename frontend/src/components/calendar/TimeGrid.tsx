@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { CalendarEvent } from '../../stores/useEventStore';
 import { Todo } from '../../stores/useTodoStore';
 import { EventBlock } from './EventBlock';
@@ -18,16 +18,46 @@ interface Props {
   onTimeClick?: (date: Date, hour: number) => void;
   onTodoComplete?: (id: string) => void;
   onEventEdit?: (event: CalendarEvent) => void;
+  onEventResize?: (eventId: string, newEnd: string) => void;
+  onTemplateDrop?: (date: Date, hour: number, template: { name: string; color: string; defaultMinutes: number }) => void;
 }
 
-export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit }) => {
+export const TimeGrid: React.FC<Props> = ({
+  date, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit, onEventResize, onTemplateDrop,
+}) => {
   const dayEvents = events.filter((e) => isSameDay(e.start, date));
   const dayTodos = scheduledTodos.filter((t) => t.scheduledStart && isSameDay(t.scheduledStart, date));
 
   const totalHeight = HOURS.length * HOUR_HEIGHT + TOP_OFFSET;
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('application/json');
+    if (!data) return;
+
+    try {
+      const template = JSON.parse(data);
+      const rect = e.currentTarget.getBoundingClientRect();
+      const y = e.clientY - rect.top - TOP_OFFSET;
+      const rawHour = y / HOUR_HEIGHT;
+      // Auf 15min runden
+      const hour = Math.floor(rawHour);
+      const minutes = Math.round((rawHour - hour) * 60 / 15) * 15;
+      const snappedHour = hour + minutes / 60;
+
+      onTemplateDrop?.(date, snappedHour, template);
+    } catch { /* ignore invalid data */ }
+  }, [date, onTemplateDrop]);
+
   return (
     <div
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       style={{
         position: 'relative',
         height: totalHeight,
@@ -67,6 +97,7 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
           top={getTimePosition(event.start, START_HOUR) * HOUR_HEIGHT + TOP_OFFSET}
           height={getDurationHours(event.start, event.end) * HOUR_HEIGHT}
           onEdit={onEventEdit}
+          onResize={onEventResize}
         />
       ))}
 

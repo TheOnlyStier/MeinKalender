@@ -11,9 +11,13 @@ interface Props {
   onTimeClick?: (date: Date, hour: number) => void;
   onTodoComplete?: (id: string) => void;
   onEventEdit?: (event: CalendarEvent) => void;
+  onEventResize?: (eventId: string, newEnd: string) => void;
+  onTemplateDrop?: (date: Date, hour: number, template: { name: string; color: string; defaultMinutes: number }) => void;
 }
 
-export const DayView: React.FC<Props> = ({ selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit }) => {
+export const DayView: React.FC<Props> = ({
+  selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit, onEventResize, onTemplateDrop,
+}) => {
   return (
     <div className="flex">
       <TimeLabels />
@@ -25,6 +29,8 @@ export const DayView: React.FC<Props> = ({ selectedDate, events, scheduledTodos,
           onTimeClick={onTimeClick}
           onTodoComplete={onTodoComplete}
           onEventEdit={onEventEdit}
+          onEventResize={onEventResize}
+          onTemplateDrop={onTemplateDrop}
         />
       </div>
     </div>

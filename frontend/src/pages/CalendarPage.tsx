@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarHeader } from '../components/calendar/CalendarHeader';
 import { WeekView } from '../components/calendar/WeekView';
 import { DayView } from '../components/calendar/DayView';
@@ -11,7 +11,7 @@ import { getWeekRange } from '../utils/dateUtils';
 
 export const CalendarPage: React.FC = () => {
   const { selectedDate, currentView } = useUIStore();
-  const { events, fetchEvents } = useEventStore();
+  const { events, fetchEvents, createEvent, updateEvent } = useEventStore();
   const { todos, fetchTodos } = useTodoStore();
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventFormDate, setEventFormDate] = useState<Date>();
@@ -43,6 +43,32 @@ export const CalendarPage: React.FC = () => {
     setEditingEvent(undefined);
   };
 
+  const handleEventResize = useCallback(async (eventId: string, newEnd: string) => {
+    await updateEvent(eventId, { end: newEnd });
+  }, [updateEvent]);
+
+  const handleTemplateDrop = useCallback(async (
+    date: Date,
+    hour: number,
+    template: { name: string; color: string; defaultMinutes: number }
+  ) => {
+    const startDate = new Date(date);
+    const fullHour = Math.floor(hour);
+    const minutes = Math.round((hour - fullHour) * 60);
+    startDate.setHours(fullHour, minutes, 0, 0);
+
+    const durationMinutes = template.defaultMinutes || 60;
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+
+    await createEvent({
+      title: template.name,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      color: template.color,
+      isAllDay: false,
+    });
+  }, [createEvent]);
+
   return (
     <div className="flex flex-col h-full">
       <CalendarHeader />
@@ -55,6 +81,8 @@ export const CalendarPage: React.FC = () => {
             scheduledTodos={scheduledTodos}
             onTimeClick={handleTimeClick}
             onEventEdit={handleEventEdit}
+            onEventResize={handleEventResize}
+            onTemplateDrop={handleTemplateDrop}
           />
         ) : (
           <DayView
@@ -63,6 +91,8 @@ export const CalendarPage: React.FC = () => {
             scheduledTodos={scheduledTodos}
             onTimeClick={handleTimeClick}
             onEventEdit={handleEventEdit}
+            onEventResize={handleEventResize}
+            onTemplateDrop={handleTemplateDrop}
           />
         )}
       </div>
