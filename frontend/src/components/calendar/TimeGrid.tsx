@@ -23,23 +23,33 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
   const dayEvents = events.filter((e) => isSameDay(e.start, date));
   const dayTodos = scheduledTodos.filter((t) => t.scheduledStart && isSameDay(t.scheduledStart, date));
 
+  const totalHeight = HOURS.length * HOUR_HEIGHT + TOP_OFFSET;
+
   return (
     <div
-      className="relative"
       style={{
-        height: HOURS.length * HOUR_HEIGHT + TOP_OFFSET,
-        borderRight: '1px solid #d1d5db',
+        position: 'relative',
+        height: totalHeight,
+        backgroundColor: '#ffffff',
+        borderRight: '1px solid #c0c4cc',
+        backgroundImage: `repeating-linear-gradient(
+          to bottom,
+          transparent,
+          transparent ${HOUR_HEIGHT - 1}px,
+          #c0c4cc ${HOUR_HEIGHT - 1}px,
+          #c0c4cc ${HOUR_HEIGHT}px
+        )`,
+        backgroundPositionY: TOP_OFFSET,
       }}
     >
-      {/* Hour rows */}
+      {/* Clickable hour zones */}
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="absolute w-full cursor-pointer hover:bg-blue-50/40 transition-colors"
+          className="absolute w-full cursor-pointer hover:bg-blue-100/40 transition-colors"
           style={{
             top: (hour - START_HOUR) * HOUR_HEIGHT + TOP_OFFSET,
             height: HOUR_HEIGHT,
-            borderTop: '1px solid #d1d5db',
           }}
           onClick={() => onTimeClick?.(date, hour)}
         />
