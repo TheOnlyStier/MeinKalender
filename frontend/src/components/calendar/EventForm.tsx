@@ -1,33 +1,50 @@
 import React, { useState } from 'react';
-import { useEventStore } from '../../stores/useEventStore';
+import { CalendarEvent, useEventStore } from '../../stores/useEventStore';
 
 interface Props {
   initialDate?: Date;
   initialHour?: number;
+  editEvent?: CalendarEvent;
   onClose?: () => void;
 }
 
-export const EventForm: React.FC<Props> = ({ initialDate, initialHour, onClose }) => {
-  const { createEvent } = useEventStore();
-  const defaultDate = initialDate || new Date();
-  const defaultHour = initialHour ?? 9;
+export const EventForm: React.FC<Props> = ({ initialDate, initialHour, editEvent, onClose }) => {
+  const { createEvent, updateEvent } = useEventStore();
+  const isEdit = !!editEvent;
 
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState(defaultDate.toISOString().split('T')[0]);
-  const [startTime, setStartTime] = useState(`${String(defaultHour).padStart(2, '0')}:00`);
-  const [endTime, setEndTime] = useState(`${String(defaultHour + 1).padStart(2, '0')}:00`);
-  const [color, setColor] = useState('#6366f1');
+  const defaultDate = editEvent
+    ? new Date(editEvent.start).toISOString().split('T')[0]
+    : (initialDate || new Date()).toISOString().split('T')[0];
+  const defaultStartHour = editEvent
+    ? new Date(editEvent.start).toTimeString().slice(0, 5)
+    : `${String(initialHour ?? 9).padStart(2, '0')}:00`;
+  const defaultEndHour = editEvent
+    ? new Date(editEvent.end).toTimeString().slice(0, 5)
+    : `${String((initialHour ?? 9) + 1).padStart(2, '0')}:00`;
+
+  const [title, setTitle] = useState(editEvent?.title || '');
+  const [date, setDate] = useState(defaultDate);
+  const [startTime, setStartTime] = useState(defaultStartHour);
+  const [endTime, setEndTime] = useState(defaultEndHour);
+  const [color, setColor] = useState(editEvent?.color || '#6366f1');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    await createEvent({
+
+    const data = {
       title: title.trim(),
       start: `${date}T${startTime}:00`,
       end: `${date}T${endTime}:00`,
       color,
       isAllDay: false,
-    });
+    };
+
+    if (isEdit) {
+      await updateEvent(editEvent._id, data);
+    } else {
+      await createEvent(data);
+    }
     onClose?.();
   };
 
@@ -98,7 +115,7 @@ export const EventForm: React.FC<Props> = ({ initialDate, initialHour, onClose }
           type="submit"
           className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
-          Termin erstellen
+          {isEdit ? 'Speichern' : 'Termin erstellen'}
         </button>
         {onClose && (
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">

@@ -5,7 +5,7 @@ import { DayView } from '../components/calendar/DayView';
 import { EventForm } from '../components/calendar/EventForm';
 import { Modal } from '../components/shared/Modal';
 import { useUIStore } from '../stores/useUIStore';
-import { useEventStore } from '../stores/useEventStore';
+import { useEventStore, CalendarEvent } from '../stores/useEventStore';
 import { useTodoStore } from '../stores/useTodoStore';
 import { getWeekRange } from '../utils/dateUtils';
 
@@ -16,6 +16,7 @@ export const CalendarPage: React.FC = () => {
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventFormDate, setEventFormDate] = useState<Date>();
   const [eventFormHour, setEventFormHour] = useState<number>();
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>();
 
   const scheduledTodos = todos.filter((t) => t.status === 'scheduled');
 
@@ -26,9 +27,20 @@ export const CalendarPage: React.FC = () => {
   }, [selectedDate, fetchEvents, fetchTodos]);
 
   const handleTimeClick = (date: Date, hour: number) => {
+    setEditingEvent(undefined);
     setEventFormDate(date);
     setEventFormHour(hour);
     setShowEventForm(true);
+  };
+
+  const handleEventEdit = (event: CalendarEvent) => {
+    setEditingEvent(event);
+    setShowEventForm(true);
+  };
+
+  const handleFormClose = () => {
+    setShowEventForm(false);
+    setEditingEvent(undefined);
   };
 
   return (
@@ -42,6 +54,7 @@ export const CalendarPage: React.FC = () => {
             events={events}
             scheduledTodos={scheduledTodos}
             onTimeClick={handleTimeClick}
+            onEventEdit={handleEventEdit}
           />
         ) : (
           <DayView
@@ -49,15 +62,21 @@ export const CalendarPage: React.FC = () => {
             events={events}
             scheduledTodos={scheduledTodos}
             onTimeClick={handleTimeClick}
+            onEventEdit={handleEventEdit}
           />
         )}
       </div>
 
-      <Modal isOpen={showEventForm} onClose={() => setShowEventForm(false)} title="Neuer Termin">
+      <Modal
+        isOpen={showEventForm}
+        onClose={handleFormClose}
+        title={editingEvent ? 'Termin bearbeiten' : 'Neuer Termin'}
+      >
         <EventForm
           initialDate={eventFormDate}
           initialHour={eventFormHour}
-          onClose={() => setShowEventForm(false)}
+          editEvent={editingEvent}
+          onClose={handleFormClose}
         />
       </Modal>
     </div>

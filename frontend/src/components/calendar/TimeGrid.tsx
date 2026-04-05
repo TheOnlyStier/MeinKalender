@@ -17,9 +17,10 @@ interface Props {
   scheduledTodos: Todo[];
   onTimeClick?: (date: Date, hour: number) => void;
   onTodoComplete?: (id: string) => void;
+  onEventEdit?: (event: CalendarEvent) => void;
 }
 
-export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTimeClick, onTodoComplete }) => {
+export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit }) => {
   const dayEvents = events.filter((e) => isSameDay(e.start, date));
   const dayTodos = scheduledTodos.filter((t) => t.scheduledStart && isSameDay(t.scheduledStart, date));
 
@@ -65,6 +66,7 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
           event={event}
           top={getTimePosition(event.start, START_HOUR) * HOUR_HEIGHT + TOP_OFFSET}
           height={getDurationHours(event.start, event.end) * HOUR_HEIGHT}
+          onEdit={onEventEdit}
         />
       ))}
 

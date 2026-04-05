@@ -6,9 +6,10 @@ interface Props {
   event: CalendarEvent;
   top: number;
   height: number;
+  onEdit?: (event: CalendarEvent) => void;
 }
 
-export const EventBlock: React.FC<Props> = ({ event, top, height }) => {
+export const EventBlock: React.FC<Props> = ({ event, top, height, onEdit }) => {
   const { deleteEvent } = useEventStore();
 
   return (
@@ -19,6 +20,7 @@ export const EventBlock: React.FC<Props> = ({ event, top, height }) => {
         height: Math.max(height, 24),
         backgroundColor: event.color || '#6366f1',
       }}
+      onClick={() => onEdit?.(event)}
     >
       <div className="flex items-center justify-between gap-1">
         <div className="font-medium truncate">{event.title}</div>

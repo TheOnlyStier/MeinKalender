@@ -11,9 +11,10 @@ interface Props {
   scheduledTodos: Todo[];
   onTimeClick?: (date: Date, hour: number) => void;
   onTodoComplete?: (id: string) => void;
+  onEventEdit?: (event: CalendarEvent) => void;
 }
 
-export const WeekView: React.FC<Props> = ({ selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete }) => {
+export const WeekView: React.FC<Props> = ({ selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete, onEventEdit }) => {
   const weekDays = getWeekDays(selectedDate);
 
   return (
@@ -31,6 +32,7 @@ export const WeekView: React.FC<Props> = ({ selectedDate, events, scheduledTodos
               scheduledTodos={scheduledTodos}
               onTimeClick={onTimeClick}
               onTodoComplete={onTodoComplete}
+              onEventEdit={onEventEdit}
             />
           </div>
         ))}
