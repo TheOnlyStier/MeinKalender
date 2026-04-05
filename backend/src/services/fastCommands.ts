@@ -232,12 +232,15 @@ async function parseEventCreation(message: string): Promise<ParsedEvent | null> 
     title = tagMatch.tag.name; // Immer den offiziellen Tag-Namen verwenden
   } else {
     title = msg
+      .replace(/nächste\s*woche/gi, '')
+      .replace(/diese\s*woche/gi, '')
       .replace(/morgen|übermorgen|heute|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag/gi, '')
       .replace(/(\d{1,2})[:\.]?(\d{2})?\s*(?:uhr)?/i, '')
       .replace(/(\d+(?:[.,]\d+)?)\s*(stunde|stunden|h|std|minute|minuten|min|m)\b/i, '')
       .replace(/[,;]/g, '')
-      .replace(/termin\s*/i, '')
+      .replace(/\b(bitte|termin|eintragen|erstellen|erstell|trag|trage|ein|für|mich|mal|kannst\s*du|könntest\s*du)\b/gi, '')
       .replace(/um\s*/i, '')
+      .replace(/\s{2,}/g, ' ')
       .trim();
 
     if (title.length < 2) return null;
@@ -383,16 +386,18 @@ function parseRelativeDate(msg: string): Date | null {
   today.setHours(0, 0, 0, 0);
 
   if (lower.includes('heute')) return today;
-  if (lower.includes('morgen')) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 1);
-    return d;
-  }
   if (lower.includes('übermorgen')) {
     const d = new Date(today);
     d.setDate(d.getDate() + 2);
     return d;
   }
+  if (lower.includes('morgen') && !lower.includes('übermorgen')) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }
+
+  const isNextWeek = /nächste\s*woche/i.test(lower);
 
   const days: Record<string, number> = {
     montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4,
@@ -404,6 +409,7 @@ function parseRelativeDate(msg: string): Date | null {
       const currentDay = d.getDay();
       let diff = targetDay - currentDay;
       if (diff <= 0) diff += 7;
+      if (isNextWeek) diff += 7;
       d.setDate(d.getDate() + diff);
       return d;
     }
