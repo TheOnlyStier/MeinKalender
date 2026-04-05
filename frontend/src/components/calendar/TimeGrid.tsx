@@ -8,8 +8,8 @@ import { getTimePosition, getDurationHours, isSameDay } from '../../utils/dateUt
 const START_HOUR = 0;
 const END_HOUR = 24;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
-const HOUR_HEIGHT = 64; // px per hour
-const TOP_OFFSET = 20; // px offset so 0:00 label isn't clipped
+const HOUR_HEIGHT = 64;
+const TOP_OFFSET = 20;
 
 interface Props {
   date: Date;
@@ -32,11 +32,7 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
           className="absolute w-full border-t border-gray-100 cursor-pointer hover:bg-blue-50/30 transition-colors"
           style={{ top: (hour - START_HOUR) * HOUR_HEIGHT + TOP_OFFSET, height: HOUR_HEIGHT }}
           onClick={() => onTimeClick?.(date, hour)}
-        >
-          <span className="absolute -top-3 -left-14 text-xs text-gray-400 w-12 text-right">
-            {hour.toString().padStart(2, '0')}:00
-          </span>
-        </div>
+        />
       ))}
 
       {/* Current time indicator */}

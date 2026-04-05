@@ -13,7 +13,7 @@ export const EventBlock: React.FC<Props> = ({ event, top, height }) => {
 
   return (
     <div
-      className="group absolute left-16 right-2 rounded-lg px-3 py-1.5 text-white text-sm overflow-hidden cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10"
+      className="group absolute left-1 right-1 rounded-lg px-3 py-1.5 text-white text-sm overflow-hidden cursor-pointer hover:opacity-90 transition-opacity shadow-sm z-10"
       style={{
         top,
         height: Math.max(height, 24),

@@ -20,7 +20,7 @@ export const ScheduledTaskBlock: React.FC<Props> = ({ todo, top, height, onCompl
 
   return (
     <div
-      className={`absolute left-16 right-2 rounded-lg px-3 py-1.5 text-sm overflow-hidden border-l-4 border-dashed cursor-pointer hover:shadow-md transition-shadow z-10 ${style}`}
+      className={`absolute left-1 right-1 rounded-lg px-3 py-1.5 text-sm overflow-hidden border-l-4 border-dashed cursor-pointer hover:shadow-md transition-shadow z-10 ${style}`}
       style={{ top, height: Math.max(height, 24) }}
     >
       <div className="flex items-center gap-2">

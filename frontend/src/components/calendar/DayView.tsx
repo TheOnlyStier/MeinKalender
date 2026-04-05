@@ -1,5 +1,6 @@
 import React from 'react';
 import { TimeGrid } from './TimeGrid';
+import { TimeLabels } from './TimeLabels';
 import { CalendarEvent } from '../../stores/useEventStore';
 import { Todo } from '../../stores/useTodoStore';
 
@@ -13,8 +14,9 @@ interface Props {
 
 export const DayView: React.FC<Props> = ({ selectedDate, events, scheduledTodos, onTimeClick, onTodoComplete }) => {
   return (
-    <div className="flex overflow-auto">
-      <div className="flex-1 pl-16 relative">
+    <div className="flex">
+      <TimeLabels />
+      <div className="flex-1 relative">
         <TimeGrid
           date={selectedDate}
           events={events}
