@@ -24,13 +24,23 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
   const dayTodos = scheduledTodos.filter((t) => t.scheduledStart && isSameDay(t.scheduledStart, date));
 
   return (
-    <div className="relative" style={{ height: HOURS.length * HOUR_HEIGHT + TOP_OFFSET }}>
-      {/* Hour lines */}
+    <div
+      className="relative"
+      style={{
+        height: HOURS.length * HOUR_HEIGHT + TOP_OFFSET,
+        borderRight: '1px solid #d1d5db',
+      }}
+    >
+      {/* Hour rows */}
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="absolute w-full border-t border-gray-200 cursor-pointer hover:bg-blue-50/30 transition-colors"
-          style={{ top: (hour - START_HOUR) * HOUR_HEIGHT + TOP_OFFSET, height: HOUR_HEIGHT }}
+          className="absolute w-full cursor-pointer hover:bg-blue-50/40 transition-colors"
+          style={{
+            top: (hour - START_HOUR) * HOUR_HEIGHT + TOP_OFFSET,
+            height: HOUR_HEIGHT,
+            borderTop: '1px solid #d1d5db',
+          }}
           onClick={() => onTimeClick?.(date, hour)}
         />
       ))}
