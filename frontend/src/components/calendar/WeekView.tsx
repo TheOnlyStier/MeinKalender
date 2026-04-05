@@ -22,7 +22,7 @@ export const WeekView: React.FC<Props> = ({ selectedDate, events, scheduledTodos
       <TimeLabels />
 
       {/* Day columns */}
-      <div className="grid grid-cols-7 flex-1 divide-x divide-gray-200">
+      <div className="grid grid-cols-7 flex-1 divide-x divide-gray-300">
         {weekDays.map((day) => (
           <div key={day.toISOString()} className="relative min-w-[120px]">
             <TimeGrid

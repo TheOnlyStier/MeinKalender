@@ -29,7 +29,7 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="absolute w-full border-t border-gray-100 cursor-pointer hover:bg-blue-50/30 transition-colors"
+          className="absolute w-full border-t border-gray-200 cursor-pointer hover:bg-blue-50/30 transition-colors"
           style={{ top: (hour - START_HOUR) * HOUR_HEIGHT + TOP_OFFSET, height: HOUR_HEIGHT }}
           onClick={() => onTimeClick?.(date, hour)}
         />
