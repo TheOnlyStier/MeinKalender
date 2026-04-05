@@ -7,10 +7,15 @@ const TIMEOUT_MS = 60_000; // 60s max per request
  * Sends a message to Claude Code CLI and returns the response.
  * Uses the user's existing Claude subscription – no API key needed.
  */
-export function askClaude(userMessage: string): Promise<string> {
+export function askClaude(userMessage: string, conversationContext: string = ''): Promise<string> {
   return new Promise((resolve, reject) => {
+    // Kontext + aktuelle Nachricht kombinieren
+    const fullPrompt = conversationContext
+      ? `${conversationContext}\nNils: ${userMessage}\n\nBitte antworte auf die aktuelle Nachricht von Nils. Beziehe dich auf den bisherigen Gesprächsverlauf wenn relevant.`
+      : userMessage;
+
     const args = [
-      '-p', userMessage,
+      '-p', fullPrompt,
       '--system-prompt', SYSTEM_PROMPT,
       '--allowedTools', 'bash',
       '--max-turns', '5',

@@ -1,6 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import { askClaude } from './claude-bridge';
+import { memory } from './conversation';
 
 dotenv.config();
 
@@ -14,11 +15,11 @@ if (!TOKEN) {
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-console.log('🤖 MeinKalender Bot gestartet');
+console.log('🤖 MeinKalender Bot gestartet (mit Gesprächs-Gedächtnis)');
 
 // Security: nur Nachrichten vom erlaubten Chat verarbeiten
 function isAllowed(chatId: number): boolean {
-  if (!ALLOWED_CHAT_ID) return true; // Kein Filter gesetzt → alle erlauben
+  if (!ALLOWED_CHAT_ID) return true;
   return chatId.toString() === ALLOWED_CHAT_ID;
 }
 
@@ -26,41 +27,49 @@ function isAllowed(chatId: number): boolean {
 bot.onText(/\/start/, (msg) => {
   if (!isAllowed(msg.chat.id)) return;
   bot.sendMessage(msg.chat.id,
-    `👋 Hallo! Ich bin dein MeinKalender Assistent.\n\n` +
+    `👋 Hallo Nils! Ich bin dein MeinKalender Assistent.\n\n` +
     `Schreib mir einfach was du brauchst:\n\n` +
     `📅 "Morgen 14 Uhr Zahnarzt, 1 Stunde"\n` +
     `📋 "Neue Aufgabe: Steuererklärung, 2h, hohe Prio"\n` +
-    `📊 "Was steht heute an?"\n` +
-    `⚡ "Plane meinen Tag"\n\n` +
-    `Deine Chat-ID: \`${msg.chat.id}\``,
+    `📊 /heute – Was steht heute an?\n` +
+    `⚡ /plan – Tag automatisch planen\n` +
+    `📋 /tasks – Offene Aufgaben\n` +
+    `🔄 /reset – Gesprächsverlauf zurücksetzen`,
     { parse_mode: 'Markdown' }
   );
 });
 
-// /heute command – quick shortcut
+// /heute command
 bot.onText(/\/heute/, async (msg) => {
   if (!isAllowed(msg.chat.id)) return;
   await handleMessage(msg.chat.id, 'Was steht heute auf dem Plan? Zeige mir alle Termine und geplante Aufgaben.');
 });
 
-// /plan command – auto-schedule
+// /plan command
 bot.onText(/\/plan/, async (msg) => {
   if (!isAllowed(msg.chat.id)) return;
   await handleMessage(msg.chat.id, 'Plane automatisch alle offenen Aufgaben für die nächsten 7 Tage ein und zeig mir das Ergebnis.');
 });
 
-// /tasks command – show open tasks
+// /tasks command
 bot.onText(/\/tasks/, async (msg) => {
   if (!isAllowed(msg.chat.id)) return;
   await handleMessage(msg.chat.id, 'Zeige mir alle offenen Aufgaben sortiert nach Priorität.');
 });
 
+// /reset command – Gesprächsverlauf zurücksetzen
+bot.onText(/\/reset/, (msg) => {
+  if (!isAllowed(msg.chat.id)) return;
+  memory.clear(msg.chat.id);
+  bot.sendMessage(msg.chat.id, '🔄 Gesprächsverlauf zurückgesetzt.');
+});
+
 // All other messages → Claude
 bot.on('message', async (msg) => {
   if (!msg.text) return;
-  if (msg.text.startsWith('/')) return; // Commands handled above
+  if (msg.text.startsWith('/')) return;
   if (!isAllowed(msg.chat.id)) {
-    bot.sendMessage(msg.chat.id, '🚫 Nicht autorisiert. Deine Chat-ID: ' + msg.chat.id);
+    bot.sendMessage(msg.chat.id, '🚫 Nicht autorisiert.');
     return;
   }
 
@@ -68,19 +77,26 @@ bot.on('message', async (msg) => {
 });
 
 async function handleMessage(chatId: number, text: string): Promise<void> {
-  // Typing indicator
   bot.sendChatAction(chatId, 'typing');
 
-  // Keep typing while Claude works
   const typingInterval = setInterval(() => {
     bot.sendChatAction(chatId, 'typing');
   }, 4000);
 
   try {
-    const response = await askClaude(text);
+    // Nachricht zum Verlauf hinzufügen
+    memory.add(chatId, 'user', text);
+
+    // Kontext aus bisherigem Verlauf holen
+    const context = memory.getContext(chatId);
+
+    // Claude mit Kontext aufrufen
+    const response = await askClaude(text, context);
     clearInterval(typingInterval);
 
-    // Telegram hat ein 4096 Zeichen Limit pro Nachricht
+    // Antwort zum Verlauf hinzufügen
+    memory.add(chatId, 'assistant', response);
+
     if (response.length > 4000) {
       const chunks = response.match(/.{1,4000}/gs) || [response];
       for (const chunk of chunks) {
@@ -97,7 +113,6 @@ async function handleMessage(chatId: number, text: string): Promise<void> {
   }
 }
 
-// Error handling
 bot.on('polling_error', (err) => {
   console.error('Polling error:', err.message);
 });
