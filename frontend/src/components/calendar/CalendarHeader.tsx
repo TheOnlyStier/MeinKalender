@@ -9,7 +9,7 @@ export const CalendarHeader: React.FC = () => {
   const monthYear = selectedDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="border-b border-gray-200 bg-white">
+    <div className="border-b border-gray-200 bg-white sticky top-0 z-30">
       {/* Navigation */}
       <div className="flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-4">

@@ -23,7 +23,7 @@ export const TimeGrid: React.FC<Props> = ({ date, events, scheduledTodos, onTime
   const dayTodos = scheduledTodos.filter((t) => t.scheduledStart && isSameDay(t.scheduledStart, date));
 
   return (
-    <div className="relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
+    <div className="relative pt-4" style={{ height: HOURS.length * HOUR_HEIGHT + 16 }}>
       {/* Hour lines */}
       {HOURS.map((hour) => (
         <div
