@@ -12,9 +12,16 @@ export const EventForm: React.FC<Props> = ({ initialDate, initialHour, editEvent
   const { createEvent, updateEvent } = useEventStore();
   const isEdit = !!editEvent;
 
+  const toLocalDateString = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const defaultDate = editEvent
-    ? new Date(editEvent.start).toISOString().split('T')[0]
-    : (initialDate || new Date()).toISOString().split('T')[0];
+    ? toLocalDateString(new Date(editEvent.start))
+    : toLocalDateString(initialDate || new Date());
   const defaultStartHour = editEvent
     ? new Date(editEvent.start).toTimeString().slice(0, 5)
     : `${String(initialHour ?? 9).padStart(2, '0')}:00`;
