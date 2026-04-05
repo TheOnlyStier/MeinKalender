@@ -84,18 +84,34 @@ async function handleMessage(chatId: number, text: string): Promise<void> {
   }, 4000);
 
   try {
-    // Nachricht zum Verlauf hinzufügen
-    memory.add(chatId, 'user', text);
+    // Zuerst Backend Fast Commands versuchen (sofort)
+    let response: string;
+    let isFast = false;
 
-    // Kontext aus bisherigem Verlauf holen
-    const context = memory.getContext(chatId);
+    try {
+      const res = await fetch('http://localhost:3001/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, sessionId: `telegram-${chatId}` }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      response = data.response;
+      isFast = data.fast;
+    } catch {
+      // Backend nicht erreichbar → Claude direkt
+      memory.add(chatId, 'user', text);
+      const context = memory.getContext(chatId);
+      response = await askClaude(text, context);
+    }
 
-    // Claude mit Kontext aufrufen
-    const response = await askClaude(text, context);
     clearInterval(typingInterval);
 
-    // Antwort zum Verlauf hinzufügen
-    memory.add(chatId, 'assistant', response);
+    // Verlauf nur updaten wenn nicht fast (fast hat keinen Konversations-Kontext)
+    if (!isFast) {
+      memory.add(chatId, 'user', text);
+      memory.add(chatId, 'assistant', response);
+    }
 
     if (response.length > 4000) {
       const chunks = response.match(/.{1,4000}/gs) || [response];

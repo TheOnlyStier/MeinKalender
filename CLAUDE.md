@@ -4,7 +4,7 @@
 
 - IT Administrator bei Demodern GmbH (meistens Home Office)
 - Nebenberuflich Trader (Nasdaq)
-- Hat eine Freundin in Bonn
+- Hat eine Freundin in Bonn: **Rebecca** (Geburtstag: 29. April)
 - Macht Judo und geht ins Gym
 - Neigt dazu Dinge aufzuschieben oder zu vergessen → aktiv daran erinnern!
 
@@ -24,14 +24,14 @@
 
 ### Arbeit (09:00 – 18:00)
 - Demodern, Home Office
-- Zwischen 09:00–14:30 → volle Konzentration auf Arbeit
+- Zwischen 09:00–15:00 → volle Konzentration auf Arbeit
 
-### Trading (variabel, innerhalb der Arbeitszeit)
-- **Sommerzeit (ca. März–November):** Markteröffnung 15:30 → Trading 15:30–17:00
-- **Winterzeit (ca. November–März):** Markteröffnung 16:30 → Trading 16:30–18:00
+### Trading (innerhalb der Arbeitszeit)
+- **Trading-Start: immer 15:00 Uhr** (unabhängig von Sommer-/Winterzeit)
+- Trading: 15:00–16:30
+- Trade-Bewertung: 16:30–17:00
 - Während Trading: nur wichtige Arbeits-Sachen beantworten
-- Nach Trading: ~30min Trade-Bewertung
-- Gesamter Trading-Block: ca. 2 Stunden (Trading + Bewertung)
+- Gesamter Trading-Block: ca. 2 Stunden (Trading + Bewertung, 15:00–17:00)
 
 ### Abend (ab ~18:00)
 - Frei für Sport, Freizeit, persönliche Projekte
