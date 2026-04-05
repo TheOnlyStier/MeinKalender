@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { SYSTEM_PROMPT } from './system-prompt';
 
-const TIMEOUT_MS = 60_000; // 60s max per request
+const TIMEOUT_MS = 120_000; // 120s max per request
 
 /**
  * Sends a message to Claude Code CLI and returns the response.
@@ -58,7 +58,12 @@ export function askClaude(userMessage: string, conversationContext: string = '')
     // Timeout safety
     setTimeout(() => {
       proc.kill('SIGTERM');
-      reject(new Error('Claude timed out after 60s'));
+      if (stdout.trim()) {
+        // Partial response is better than nothing
+        resolve(cleanResponse(stdout.trim()));
+      } else {
+        reject(new Error('Claude antwortet gerade nicht (Timeout). Versuch es in 1-2 Minuten nochmal.'));
+      }
     }, TIMEOUT_MS);
   });
 }
