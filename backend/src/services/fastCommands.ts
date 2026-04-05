@@ -1,13 +1,65 @@
 /**
  * Fast command parser – verarbeitet häufige Anfragen direkt ohne Claude.
  * Gibt null zurück wenn die Anfrage zu komplex ist → Fallback auf Claude.
+ * Unterstützt Tag-Erkennung für konsistente Namen, Farben und Dauern.
  */
+
+import { Tag, TagDoc } from '../models/Tag';
 
 const API_BASE = 'http://localhost:3001';
 
 interface FastResult {
   response: string;
   action?: string;
+}
+
+interface MatchedTag {
+  tag: TagDoc;
+  matchedOn: string; // Welcher Name/Alias gematcht hat
+}
+
+// Tag-Cache (wird alle 60s neu geladen)
+let tagCache: TagDoc[] = [];
+let tagCacheTime = 0;
+
+async function getTags(): Promise<TagDoc[]> {
+  if (Date.now() - tagCacheTime > 60_000) {
+    tagCache = await Tag.find();
+    tagCacheTime = Date.now();
+  }
+  return tagCache;
+}
+
+/** Sucht den besten Tag-Match im Text */
+async function findTag(text: string): Promise<MatchedTag | null> {
+  const tags = await getTags();
+  const lower = text.toLowerCase();
+
+  // Erst exakten Namen matchen, dann Aliases (längste zuerst für beste Matches)
+  const allMatches: { tag: TagDoc; matchedOn: string; length: number }[] = [];
+
+  for (const tag of tags) {
+    if (lower.includes(tag.name.toLowerCase())) {
+      allMatches.push({ tag, matchedOn: tag.name, length: tag.name.length });
+    }
+    for (const alias of tag.aliases) {
+      if (lower.includes(alias.toLowerCase())) {
+        allMatches.push({ tag, matchedOn: alias, length: alias.length });
+      }
+    }
+  }
+
+  if (allMatches.length === 0) return null;
+
+  // Längster Match gewinnt (z.B. "Trade-Bewertung" > "Trade")
+  allMatches.sort((a, b) => b.length - a.length);
+  return { tag: allMatches[0].tag, matchedOn: allMatches[0].matchedOn };
+}
+
+/** Usage Count erhöhen */
+async function incrementTagUsage(tagId: string): Promise<void> {
+  await Tag.findByIdAndUpdate(tagId, { $inc: { usageCount: 1 } });
+  tagCacheTime = 0; // Cache invalidieren
 }
 
 export async function tryFastCommand(message: string): Promise<FastResult | null> {
@@ -24,13 +76,13 @@ export async function tryFastCommand(message: string): Promise<FastResult | null
   }
 
   // --- Termin erstellen ---
-  const eventMatch = parseEventCreation(message);
+  const eventMatch = await parseEventCreation(message);
   if (eventMatch) {
     return await createEvent(eventMatch);
   }
 
   // --- Aufgabe erstellen ---
-  const taskMatch = parseTaskCreation(message);
+  const taskMatch = await parseTaskCreation(message);
   if (taskMatch) {
     return await createTask(taskMatch);
   }
@@ -43,7 +95,6 @@ export async function tryFastCommand(message: string): Promise<FastResult | null
     }
   }
 
-  // Nicht erkannt → Claude Fallback
   return null;
 }
 
@@ -96,17 +147,17 @@ async function getToday(): Promise<FastResult> {
     if ((events as any[]).length > 0) {
       text += '📌 **Termine:**\n';
       for (const e of events as any[]) {
-        const start = new Date(e.start).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        const end = new Date(e.end).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        text += `  • ${start}–${end} ${e.title}\n`;
+        const s = new Date(e.start).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        const en = new Date(e.end).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        text += `  • ${s}–${en} ${e.title}\n`;
       }
       text += '\n';
     }
     if (scheduledTodos.length > 0) {
       text += '✅ **Geplante Tasks:**\n';
       for (const t of scheduledTodos) {
-        const start = new Date(t.scheduledStart).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        text += `  • ${start} ${t.title} (${t.estimatedMinutes}min)\n`;
+        const s = new Date(t.scheduledStart).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        text += `  • ${s} ${t.title} (${t.estimatedMinutes}min)\n`;
       }
       text += '\n';
     }
@@ -147,50 +198,61 @@ interface ParsedEvent {
   startHour: number;
   startMinute: number;
   durationMinutes: number;
+  color?: string;
+  tagId?: string;
 }
 
-function parseEventCreation(message: string): ParsedEvent | null {
-  // Patterns: "morgen 14 Uhr Zahnarzt, 1 Stunde" / "Montag 10:30 Meeting 2h"
+async function parseEventCreation(message: string): Promise<ParsedEvent | null> {
   const msg = message.trim();
 
-  // Datum erkennen
   const date = parseRelativeDate(msg);
   if (!date) return null;
 
-  // Uhrzeit erkennen
   const timeMatch = msg.match(/(\d{1,2})[:\.]?(\d{2})?\s*(?:uhr)?/i);
   if (!timeMatch) return null;
   const startHour = parseInt(timeMatch[1]);
   const startMinute = parseInt(timeMatch[2] || '0');
   if (startHour > 23 || startMinute > 59) return null;
 
-  // Dauer erkennen
-  let durationMinutes = 60; // Default 1h
+  // Tag matchen
+  const tagMatch = await findTag(msg);
+
+  // Dauer: Tag-Default oder aus Nachricht
+  let durationMinutes = tagMatch ? tagMatch.tag.defaultMinutes : 60;
   const durationMatch = msg.match(/(\d+(?:[.,]\d+)?)\s*(stunde|stunden|h|std|minute|minuten|min|m)\b/i);
   if (durationMatch) {
     const val = parseFloat(durationMatch[1].replace(',', '.'));
     const unit = durationMatch[2].toLowerCase();
-    if (unit.startsWith('m')) {
-      durationMinutes = Math.round(val);
-    } else {
-      durationMinutes = Math.round(val * 60);
-    }
+    durationMinutes = unit.startsWith('m') ? Math.round(val) : Math.round(val * 60);
   }
 
-  // Titel: alles was nicht Datum/Zeit/Dauer ist
-  let title = msg
-    .replace(/morgen|übermorgen|heute|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag/gi, '')
-    .replace(/(\d{1,2})[:\.]?(\d{2})?\s*(?:uhr)?/i, '')
-    .replace(/(\d+(?:[.,]\d+)?)\s*(stunde|stunden|h|std|minute|minuten|min|m)\b/i, '')
-    .replace(/[,;]/g, '')
-    .replace(/termin\s*/i, '')
-    .replace(/um\s*/i, '')
-    .trim();
+  // Titel: Tag-Name oder aus Nachricht parsen
+  let title: string;
+  if (tagMatch) {
+    title = tagMatch.tag.name; // Immer den offiziellen Tag-Namen verwenden
+  } else {
+    title = msg
+      .replace(/morgen|übermorgen|heute|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag/gi, '')
+      .replace(/(\d{1,2})[:\.]?(\d{2})?\s*(?:uhr)?/i, '')
+      .replace(/(\d+(?:[.,]\d+)?)\s*(stunde|stunden|h|std|minute|minuten|min|m)\b/i, '')
+      .replace(/[,;]/g, '')
+      .replace(/termin\s*/i, '')
+      .replace(/um\s*/i, '')
+      .trim();
 
-  if (title.length < 2) return null;
-  title = title.charAt(0).toUpperCase() + title.slice(1);
+    if (title.length < 2) return null;
+    title = title.charAt(0).toUpperCase() + title.slice(1);
+  }
 
-  return { title, date, startHour, startMinute, durationMinutes };
+  return {
+    title,
+    date,
+    startHour,
+    startMinute,
+    durationMinutes,
+    color: tagMatch?.tag.color,
+    tagId: tagMatch?.tag._id.toString(),
+  };
 }
 
 async function createEvent(parsed: ParsedEvent): Promise<FastResult> {
@@ -202,15 +264,23 @@ async function createEvent(parsed: ParsedEvent): Promise<FastResult> {
     title: parsed.title,
     start: start.toISOString(),
     end: end.toISOString(),
+    color: parsed.color,
     isAllDay: false,
   });
+
+  // Tag-Usage erhöhen
+  if (parsed.tagId) {
+    await incrementTagUsage(parsed.tagId);
+  }
 
   const dayStr = start.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
   const startStr = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const endStr = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 
+  const tagInfo = parsed.tagId ? ' 🏷' : '';
+
   return {
-    response: `✅ Termin erstellt: **${parsed.title}**\n📅 ${dayStr}, ${startStr}–${endStr}`,
+    response: `✅ Termin erstellt: **${parsed.title}**${tagInfo}\n📅 ${dayStr}, ${startStr}–${endStr}`,
     action: 'createEvent',
   };
 }
@@ -222,18 +292,13 @@ interface ParsedTask {
   deadline?: string;
 }
 
-function parseTaskCreation(message: string): ParsedTask | null {
+async function parseTaskCreation(message: string): Promise<ParsedTask | null> {
   const msg = message.trim();
 
-  // Muss "aufgabe", "task", "todo" enthalten
   if (!/aufgabe|task|todo/i.test(msg)) return null;
 
-  // Titel nach dem Trigger-Wort
-  let title = msg
-    .replace(/.*(?:aufgabe|task|todo)\s*[:.]?\s*/i, '')
-    .trim();
+  let title = msg.replace(/.*(?:aufgabe|task|todo)\s*[:.]?\s*/i, '').trim();
 
-  // Priorität erkennen
   let priority: 'high' | 'medium' | 'low' = 'medium';
   if (/hoch|high|wichtig|dringend/i.test(msg)) {
     priority = 'high';
@@ -243,8 +308,10 @@ function parseTaskCreation(message: string): ParsedTask | null {
     title = title.replace(/\s*(niedrig|low|unwichtig|niedrige?\s*prio(?:rität)?)\s*/gi, ' ').trim();
   }
 
-  // Dauer erkennen
-  let estimatedMinutes = 30;
+  // Tag matchen für Standard-Dauer
+  const tagMatch = await findTag(title);
+  let estimatedMinutes = tagMatch ? tagMatch.tag.defaultMinutes : 30;
+
   const durMatch = msg.match(/(\d+(?:[.,]\d+)?)\s*(stunde|stunden|h|std|minute|minuten|min|m)\b/i);
   if (durMatch) {
     const val = parseFloat(durMatch[1].replace(',', '.'));
@@ -253,9 +320,13 @@ function parseTaskCreation(message: string): ParsedTask | null {
     title = title.replace(durMatch[0], '').trim();
   }
 
-  // Kommas und überschüssige Leerzeichen bereinigen
-  title = title.replace(/[,;]+/g, '').replace(/\s{2,}/g, ' ').trim();
+  // Tag-Name als Titel verwenden wenn gematcht
+  if (tagMatch) {
+    title = tagMatch.tag.name;
+    await incrementTagUsage(tagMatch.tag._id.toString());
+  }
 
+  title = title.replace(/[,;]+/g, '').replace(/\s{2,}/g, ' ').trim();
   if (title.length < 2) return null;
   title = title.charAt(0).toUpperCase() + title.slice(1);
 
@@ -284,8 +355,15 @@ async function createTask(parsed: ParsedTask): Promise<FastResult> {
 async function completeTask(titleSearch: string): Promise<FastResult> {
   const todos = await apiGet('/api/todos') as any[];
   const search = titleSearch.toLowerCase();
+
+  // Auch Tags matchen beim Suchen
+  const tagMatch = await findTag(titleSearch);
+  const searchTerms = tagMatch
+    ? [search, tagMatch.tag.name.toLowerCase(), ...tagMatch.tag.aliases.map(a => a.toLowerCase())]
+    : [search];
+
   const match = todos.find((t: any) =>
-    t.status !== 'done' && t.title.toLowerCase().includes(search)
+    t.status !== 'done' && searchTerms.some(s => t.title.toLowerCase().includes(s))
   );
 
   if (!match) {

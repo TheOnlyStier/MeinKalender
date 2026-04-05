@@ -6,6 +6,7 @@ import eventRoutes from './routes/events';
 import todoRoutes from './routes/todos';
 import scheduleRoutes from './routes/schedule';
 import chatRoutes from './routes/chat';
+import tagRoutes from './routes/tags';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/tags', tagRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
